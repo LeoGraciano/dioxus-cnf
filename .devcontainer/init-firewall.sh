@@ -60,7 +60,7 @@ while read -r cidr; do
         exit 1
     fi
     echo "Adding GitHub range $cidr"
-    ipset add allowed-domains "$cidr"
+    ipset add --exist allowed-domains "$cidr"
 done < <(echo "$gh_ranges" | jq -r '(.web + .api + .git)[]' | aggregate -q)
 
 # Resolve and add required domains (failure = container won't start)
@@ -91,7 +91,7 @@ for domain in \
             exit 1
         fi
         echo "Adding $ip for $domain"
-        ipset add allowed-domains "$ip"
+        ipset add --exist allowed-domains "$ip"
     done < <(echo "$ips")
 done
 
@@ -112,7 +112,7 @@ for domain in \
             continue
         fi
         echo "Adding $ip for $domain"
-        ipset add allowed-domains "$ip"
+        ipset add --exist allowed-domains "$ip"
     done < <(echo "$ips")
 done
 
