@@ -92,11 +92,29 @@ pub use scheduling::{Scheduling, SchedulingType, SchedulingStatus};
 pub use check_in::CheckIn;
 ```
 
+### Cobranca Entities
+```
+entities/
+├── mod.rs
+├── title.rs              # Title + TitleStatus
+├── installment.rs        # Installment + InstallmentStatus
+├── negotiation.rs        # Negotiation
+└── distribution_log.rs   # DistributionLog
+```
+
+### Integration Entities
+```
+entities/
+├── mod.rs
+└── sync_event.rs         # SyncEvent + SyncDirection + SyncStatus
+```
+
 ## Coding Conventions
 
 - Use `pub` for public API
 - Derive `Debug, Clone, Serialize, Deserialize` for all entities
 - Use enums for status/role fields with `PartialEq`
-- Implement `Default` for status enums when appropriate
+- Use `#[derive(Default)]` with `#[default]` attribute for status enums instead of manual `impl Default`
 - Use `chrono::DateTime<Utc>` for timestamps
 - Use `uuid::Uuid` for unique identifiers
+- Always export status enums alongside their main entity in `mod.rs`

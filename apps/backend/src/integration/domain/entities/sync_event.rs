@@ -12,8 +12,9 @@ pub enum SyncDirection {
 }
 
 /// Status of a sync event
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub enum SyncStatus {
+    #[default]
     Pending,
     Processing,
     Completed,
@@ -21,13 +22,6 @@ pub enum SyncStatus {
     Retrying,
 }
 
-impl Default for SyncStatus {
-    fn default() -> Self {
-        Self::Pending
-    }
-}
-
-/// Represents a synchronization event between legacy and new platform
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SyncEvent {
     pub id: Uuid,

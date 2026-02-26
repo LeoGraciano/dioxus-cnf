@@ -15,16 +15,11 @@ pub struct Associate {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub enum AssociateStatus {
+    #[default]
     Active,
     Inactive,
     Suspended,
     Canceled,
-}
-
-impl Default for AssociateStatus {
-    fn default() -> Self {
-        Self::Active
-    }
 }

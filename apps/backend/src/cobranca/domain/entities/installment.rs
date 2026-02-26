@@ -2,19 +2,14 @@ use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub enum InstallmentStatus {
+    #[default]
     Open,
     Paid,
     Renegotiated,
     Cancelled,
     Overdue,
-}
-
-impl Default for InstallmentStatus {
-    fn default() -> Self {
-        Self::Open
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

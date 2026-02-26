@@ -2,7 +2,7 @@ pub mod application;
 pub mod domain;
 pub mod infrastructure;
 
-pub use domain::entities::{DistributionLog, Negotiation, Title, Installment, TitleStatus};
+pub use domain::entities::{DistributionLog, Negotiation, Title, Installment, TitleStatus, InstallmentStatus};
 pub use domain::ports::{
     TitleRepository, InstallmentRepository, NegotiationRepository, DistributionLogRepository,
 };
@@ -18,6 +18,6 @@ mod tests {
 
     #[test]
     fn installment_status_default_is_open() {
-        assert_eq!(domain::entities::InstallmentStatus::default(), domain::entities::InstallmentStatus::Open);
+        assert_eq!(InstallmentStatus::default(), InstallmentStatus::Open);
     }
 }

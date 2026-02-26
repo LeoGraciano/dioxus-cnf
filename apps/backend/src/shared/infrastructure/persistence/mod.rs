@@ -4,6 +4,7 @@ use uuid::Uuid;
 use crate::domain::entities::Associate;
 use crate::domain::ports::{AssociateRepository, RepositoryError};
 
+#[allow(dead_code)]
 pub struct PostgresAssociateRepository {
     connection_string: String,
 }

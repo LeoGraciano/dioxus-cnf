@@ -77,6 +77,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "cobranca"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "serde",
+ "serde_json",
+ "shared",
+ "thiserror",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "core-foundation-sys"
 version = "0.8.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -188,6 +202,22 @@ dependencies = [
  "hashbrown 0.16.1",
  "serde",
  "serde_core",
+]
+
+[[package]]
+name = "integration"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "cobranca",
+ "crm",
+ "serde",
+ "serde_json",
+ "shared",
+ "thiserror",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]

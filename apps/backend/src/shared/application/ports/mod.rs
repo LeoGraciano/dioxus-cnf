@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use uuid::Uuid;
 
 use crate::domain::entities::Associate;
-use crate::domain::ports::{AssociateRepository, RepositoryError};
+use crate::domain::ports::RepositoryError;
 
 #[async_trait]
 pub trait AssociateService: Send + Sync {

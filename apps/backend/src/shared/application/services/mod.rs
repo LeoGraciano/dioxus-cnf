@@ -34,8 +34,8 @@ impl<R: AssociateRepository + Send + Sync> AssociateService for DefaultAssociate
             return Err(ServiceError::ValidationError("Registration cannot be empty".to_string()));
         }
         
-        let has_phone = associate.phone.as_ref().map_or(false, |p| !p.is_empty());
-        let has_email = associate.email.as_ref().map_or(false, |e| !e.is_empty());
+        let has_phone = associate.phone.as_ref().is_some_and(|p| !p.is_empty());
+        let has_email = associate.email.as_ref().is_some_and(|e| !e.is_empty());
         if !has_phone && !has_email {
             return Err(ServiceError::ValidationError("Phone or Email is required".to_string()));
         }

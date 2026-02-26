@@ -29,8 +29,9 @@ pub enum LeadSource {
     Other,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub enum LeadStatus {
+    #[default]
     New,
     Contacted,
     Qualified,
@@ -39,10 +40,4 @@ pub enum LeadStatus {
     Won,
     Lost,
     Canceled,
-}
-
-impl Default for LeadStatus {
-    fn default() -> Self {
-        Self::New
-    }
 }
