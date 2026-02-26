@@ -30,11 +30,10 @@ Status: Em progresso
 
 | Regra | Descricao | Origem | Status |
 |-------|-----------|--------|--------|
-| LEAD-001 | Lead deve ter email obrigatorio | `leads/models.py:22` | OK |
-| LEAD-002 | CPF e opcional mas indexado | `leads/models.py:19-21` | OK |
-| LEAD-003 | Telefone formatado com mascara (11 digitos) | `helpers/input/mask.py` | OK |
-| LEAD-004 | Cidade e opcional (FK para core.City) | `leads/models.py:24-26` | OK |
-| LEAD-005 | Nome completo max 150 caracteres | `leads/models.py:18` | OK |
+| LEAD-001 | Nome e obrigatorio. Telefone OU Email e obrigatorio (pelo menos um para contato). CPF e opcional no cadastro, mas obrigatorio para envio de convite | `leads/models.py:22` | OK |
+| LEAD-002 | Telefone formatado com mascara (11 digitos) | `helpers/input/mask.py` | OK |
+| LEAD-003 | Cidade e opcional (FK para core.City) | `leads/models.py:24-26` | OK |
+| LEAD-004 | Nome completo max 150 caracteres | `leads/models.py:18` | OK |
 
 ### 1.2 Status e Pipeline
 
@@ -178,3 +177,4 @@ Status: Em progresso
 2. **Distribuicao por tipo**: O sistema suporta distribuicao por associado (default) ou por parcela.
 3. **Sync resiliente**: O sistema opera sobre dados ja sincronizados, nao depende de SQL Server online.
 4. **Redis Streams**: Eventos de sync vao para DB 8 com consumer groups.
+5. **Contato obrigatorio**: Cadastro de lead exige nome + (telefone OU email). CPF e opcional no cadastro, porem obrigatorio para envio de convite.

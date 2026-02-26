@@ -9,6 +9,35 @@ env:
   DIOXUS_CLI_VERSION: "0.7.3"
 
 jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            apps/backend -> target
+
+      - name: Check (typecheck)
+        working-directory: apps/backend
+        run: cargo check --workspace
+
+      - name: Lint (clippy)
+        working-directory: apps/backend
+        run: cargo clippy --workspace -- -D warnings
+
+      - name: Test
+        working-directory: apps/backend
+        run: cargo test --workspace
+
   web:
     runs-on: ubuntu-latest
     steps:
