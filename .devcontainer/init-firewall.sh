@@ -63,7 +63,7 @@ while read -r cidr; do
     ipset add allowed-domains "$cidr"
 done < <(echo "$gh_ranges" | jq -r '(.web + .api + .git)[]' | aggregate -q)
 
-# Resolve and add other allowed domains
+# Resolve and add required domains (failure = container won't start)
 for domain in \
     "registry.npmjs.org" \
     "api.anthropic.com" \
@@ -73,10 +73,11 @@ for domain in \
     "marketplace.visualstudio.com" \
     "vscode.blob.core.windows.net" \
     "update.code.visualstudio.com" \
+    "crates.io" \
+    "static.crates.io" \
+    "index.crates.io" \
     "opencode.ai" \
-    "api.opencode.ai" \
-    "api.minimax.chat" \
-    "api.minimax.ai"; do
+    "api.opencode.ai"; do
     echo "Resolving $domain..."
     ips=$(dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}')
     if [ -z "$ips" ]; then
@@ -88,6 +89,27 @@ for domain in \
         if [[ ! "$ip" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
             echo "ERROR: Invalid IP from DNS for $domain: $ip"
             exit 1
+        fi
+        echo "Adding $ip for $domain"
+        ipset add allowed-domains "$ip"
+    done < <(echo "$ips")
+done
+
+# Resolve and add optional domains (failure = warning only, container still starts)
+for domain in \
+    "api.minimax.chat" \
+    "api.minimax.ai"; do
+    echo "Resolving optional domain $domain..."
+    ips=$(dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}')
+    if [ -z "$ips" ]; then
+        echo "WARNING: Failed to resolve optional domain $domain (skipping)"
+        continue
+    fi
+
+    while read -r ip; do
+        if [[ ! "$ip" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+            echo "WARNING: Invalid IP from DNS for $domain: $ip (skipping)"
+            continue
         fi
         echo "Adding $ip for $domain"
         ipset add allowed-domains "$ip"

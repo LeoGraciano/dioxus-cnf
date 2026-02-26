@@ -26,6 +26,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     nano \
     vim \
     locales \
+    curl \
+    build-essential \
+    pkg-config \
+    libssl-dev \
     && locale-gen en_US.UTF-8 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -82,6 +86,10 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
     -a "source /usr/share/doc/fzf/examples/completion.zsh" \
     -a "export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
     -x
+
+# Install Rust toolchain (at build time - before firewall is active)
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal
+ENV PATH="/home/node/.cargo/bin:${PATH}"
 
 # Install Claude and OpenCode
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} \
