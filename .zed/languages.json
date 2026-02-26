@@ -1,0 +1,19 @@
+[
+  {
+    "language": "Django Template",
+    "scope": "text.html.django",
+    "file_extensions": [".html"],
+    "injection_regex": "({%|{{)",
+    "roots": [],
+    "auto_pairs": {
+      "{%": "%}",
+      "{{": "}}",
+      "{#": "#}"
+    },
+    "brackets": {
+      "start": "{%",
+      "end": "%}",
+      "close": true
+    }
+  }
+]

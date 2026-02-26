@@ -1,0 +1,44 @@
+{
+  "project": {
+    "name": "dioxus-cnf",
+    "root": ".",
+    "workspace_manifest": "Cargo.toml"
+  },
+  "frontend": {
+    "framework": "dioxus",
+    "workspace_root": "apps/frontend",
+    "packages": {
+      "web": "apps/frontend/packages/web",
+      "mobile": "apps/frontend/packages/mobile",
+      "desktop": "apps/frontend/packages/desktop",
+      "ui": "apps/frontend/packages/ui"
+    },
+    "readme": "apps/frontend/README.md",
+    "commands": {
+      "dev_web": "cd apps/frontend/packages/web && dx serve",
+      "dev_mobile": "cd apps/frontend/packages/mobile && dx serve",
+      "build_web": "cd apps/frontend/packages/web && dx build --platform web",
+      "build_android": "cd apps/frontend/packages/mobile && dx build --platform android",
+      "build_ios": "cd apps/frontend/packages/mobile && dx build --platform ios"
+    }
+  },
+  "backend": {
+    "framework": "django",
+    "legacy_root": "legacy/cnf-unique",
+    "apps": ["crm2", "cob2"],
+    "notes": "Legacy Django systems for reference; do not modify without explicit request."
+  },
+  "rust": {
+    "tooling": "cargo",
+    "workspace": "Cargo.toml",
+    "packages": ["apps/frontend"],
+    "commands": {
+      "check": "cargo check",
+      "test": "cargo test"
+    }
+  },
+  "api": {
+    "style": "REST",
+    "notes": "Backend REST API to be defined in 04-backend-rust docs."
+  }
+}
