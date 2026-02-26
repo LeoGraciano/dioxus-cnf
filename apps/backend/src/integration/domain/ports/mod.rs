@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use uuid::Uuid;
 
 use shared::domain::ports::RepositoryError;
-use super::entities::{SyncEvent, SyncStatus};
+use super::entities::{ReconciliationReport, SyncEvent, SyncStatus};
 
 /// Port for persisting and querying sync events
 #[async_trait]
@@ -22,20 +22,9 @@ pub trait SyncEventRepository: Send + Sync {
 /// Port for reconciliation reporting
 #[async_trait]
 pub trait ReconciliationReporter: Send + Sync {
-    /// Generate a divergence report for the given batch
     async fn report_divergences(
         &self,
         batch_id: Uuid,
         entity_type: &str,
     ) -> Result<ReconciliationReport, RepositoryError>;
-}
-
-/// Reconciliation report showing divergences between legacy and new platform
-#[derive(Debug, Clone)]
-pub struct ReconciliationReport {
-    pub batch_id: Uuid,
-    pub entity_type: String,
-    pub total_checked: u64,
-    pub divergences: u64,
-    pub report_at: chrono::DateTime<chrono::Utc>,
 }

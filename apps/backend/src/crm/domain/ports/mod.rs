@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use uuid::Uuid;
 
 use shared::domain::ports::RepositoryError;
-use super::entities::{Lead, Sale, Workshop, Contract, Bracelet, Scheduling, CheckIn, PipelineStage};
+use super::entities::{Bracelet, CheckIn, Contract, Lead, LeadAuditEvent, PipelineStage, Sale, Scheduling, Workshop};
 
 #[async_trait]
 pub trait LeadRepository: Send + Sync {
@@ -66,4 +66,10 @@ pub trait CheckInRepository: Send + Sync {
 #[async_trait]
 pub trait PipelineStageRepository: Send + Sync {
     async fn find_all(&self) -> Result<Vec<PipelineStage>, RepositoryError>;
+}
+
+#[async_trait]
+pub trait LeadAuditRepository: Send + Sync {
+    async fn record(&self, event: &LeadAuditEvent) -> Result<LeadAuditEvent, RepositoryError>;
+    async fn find_by_lead_id(&self, lead_id: Uuid) -> Result<Vec<LeadAuditEvent>, RepositoryError>;
 }

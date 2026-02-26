@@ -1,3 +1,4 @@
+pub mod audit_event;
 pub mod bracelet;
 pub mod check_in;
 pub mod contract;
@@ -7,6 +8,7 @@ pub mod sale;
 pub mod scheduling;
 pub mod workshop;
 
+pub use audit_event::{LeadAuditEvent, LeadAuditEventType};
 pub use bracelet::{Bracelet, BraceletStatus};
 pub use check_in::CheckIn;
 pub use contract::{Contract, ContractStatus};
