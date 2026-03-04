@@ -1,2 +1,5 @@
-// Cobranca application services (orchestration of domain logic)
-// Distribution and negotiation services will be added here
+pub mod distribution;
+pub mod negotiation;
+
+pub use distribution::DistributionService;
+pub use negotiation::NegotiationService;
