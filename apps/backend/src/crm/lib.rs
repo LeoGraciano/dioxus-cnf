@@ -26,9 +26,7 @@ mod tests {
         use domain::entities::LeadSource;
         use infrastructure::persistence::{InMemoryLeadAuditRepository, InMemoryLeadRepository};
 
-        let lead_repo = InMemoryLeadRepository::default();
-        let audit_repo = InMemoryLeadAuditRepository::default();
-        let service = LeadService::new(lead_repo, audit_repo);
+        let service = LeadService::new(InMemoryLeadRepository::default(), InMemoryLeadAuditRepository::default());
 
         let input = CreateLeadInput {
             source: LeadSource::WhatsApp,
@@ -40,7 +38,7 @@ mod tests {
             assigned_to_id: None,
         };
 
-        let output = service.execute(input).await.unwrap();
+        let output = CreateLeadUseCase::execute(&service, input).await.unwrap();
         assert_eq!(output.lead.name, "Maria Silva");
         assert_eq!(output.lead.status, domain::entities::LeadStatus::New);
     }
@@ -54,14 +52,11 @@ mod tests {
         use application::services::LeadService;
         use domain::entities::{LeadAuditEventType, LeadSource, LeadStatus};
         use infrastructure::persistence::{InMemoryLeadAuditRepository, InMemoryLeadRepository};
-        use std::sync::Arc;
 
-        let lead_repo = Arc::new(InMemoryLeadRepository::default());
-        let audit_repo = Arc::new(InMemoryLeadAuditRepository::default());
-        let service = LeadService::new(Arc::clone(&lead_repo), Arc::clone(&audit_repo));
+        let service = LeadService::new(InMemoryLeadRepository::default(), InMemoryLeadAuditRepository::default());
 
         // Criar lead
-        let created = service.execute(CreateLeadInput {
+        let created = CreateLeadUseCase::execute(&service, CreateLeadInput {
             source: LeadSource::Phone,
             name: "João Costa".to_string(),
             cpf: None,
@@ -72,7 +67,7 @@ mod tests {
         }).await.unwrap();
 
         // Atualizar status para Won
-        let update_output = service.execute(UpdateLeadStatusInput {
+        let update_output = UpdateLeadStatusUseCase::execute(&service, UpdateLeadStatusInput {
             lead_id: created.lead.id,
             new_status: LeadStatus::Won,
             performed_by_id: Some(1),
@@ -83,7 +78,7 @@ mod tests {
         assert_eq!(update_output.audit_event.event_type, LeadAuditEventType::Converted);
 
         // Verificar histórico auditável
-        let history = service.execute(GetLeadHistoryInput { lead_id: created.lead.id }).await.unwrap();
+        let history = GetLeadHistoryUseCase::execute(&service, GetLeadHistoryInput { lead_id: created.lead.id }).await.unwrap();
         // deve ter: Created + StatusChanged(Won)
         assert_eq!(history.events.len(), 2);
         assert_eq!(history.events[0].event_type, LeadAuditEventType::Created);
@@ -100,13 +95,11 @@ mod tests {
         use domain::entities::SchedulingType;
         use infrastructure::persistence::{InMemoryCheckInRepository, InMemorySchedulingRepository};
 
-        let sched_repo = InMemorySchedulingRepository::default();
-        let checkin_repo = InMemoryCheckInRepository::default();
-        let service = SchedulingService::new(sched_repo, checkin_repo);
+        let service = SchedulingService::new(InMemorySchedulingRepository::default(), InMemoryCheckInRepository::default());
 
         // Agendar
         let assoc_id = uuid::Uuid::new_v4();
-        let sched = service.execute(ScheduleAppointmentInput {
+        let sched = ScheduleAppointmentUseCase::execute(&service, ScheduleAppointmentInput {
             associate_id: assoc_id,
             scheduled_date: chrono::Utc::now(),
             scheduling_type: SchedulingType::Appointment,
@@ -117,7 +110,7 @@ mod tests {
         assert_eq!(sched.scheduling.status, domain::entities::SchedulingStatus::Scheduled);
 
         // Check-in
-        let ci = service.execute(RecordCheckInInput {
+        let ci = RecordCheckInUseCase::execute(&service, RecordCheckInInput {
             associate_id: assoc_id,
             location: Some("Recepção".to_string()),
         }).await.unwrap();
@@ -125,7 +118,7 @@ mod tests {
         assert!(ci.check_in.check_out_time.is_none());
 
         // Check-out
-        let co = service.execute(RecordCheckOutInput {
+        let co = RecordCheckOutUseCase::execute(&service, RecordCheckOutInput {
             check_in_id: ci.check_in.id,
         }).await.unwrap();
 
@@ -138,9 +131,7 @@ mod tests {
         use application::services::BraceletService;
         use infrastructure::persistence::{InMemoryBraceletRepository, InMemoryLeadAuditRepository};
 
-        let bracelet_repo = InMemoryBraceletRepository::default();
-        let audit_repo = InMemoryLeadAuditRepository::default();
-        let service = BraceletService::new(bracelet_repo, audit_repo);
+        let service = BraceletService::new(InMemoryBraceletRepository::default(), InMemoryLeadAuditRepository::default());
 
         let input = IssueBraceletInput {
             associate_id: uuid::Uuid::new_v4(),
@@ -148,11 +139,11 @@ mod tests {
         };
 
         // Primeira emissão deve funcionar
-        let first = service.execute(input.clone()).await;
+        let first = IssueBraceletUseCase::execute(&service, input.clone()).await;
         assert!(first.is_ok());
 
         // Segunda com mesmo número deve falhar
-        let second = service.execute(input).await;
+        let second = IssueBraceletUseCase::execute(&service, input).await;
         assert!(second.is_err());
     }
 
@@ -162,12 +153,186 @@ mod tests {
         use application::services::PipelineService;
         use infrastructure::persistence::InMemoryPipelineStageRepository;
 
-        let repo = InMemoryPipelineStageRepository::with_default_stages();
-        let service = PipelineService::new(repo);
+        let service = PipelineService::new(InMemoryPipelineStageRepository::with_default_stages());
 
-        let output = service.execute().await.unwrap();
+        let output = GetPipelineStagesUseCase::execute(&service).await.unwrap();
         assert_eq!(output.stages.len(), 7);
         assert!(output.stages.iter().any(|s| s.is_won));
         assert!(output.stages.iter().any(|s| s.is_lost));
+    }
+
+    // ── Regression tests: CRM fluxo ponta a ponta ─────────────────────────────
+
+    /// Testa o fluxo completo: Lead → Agendamento → Workshop → Venda → Contrato → Pulseira
+    /// Garante que histórico auditável está disponível ponta a ponta.
+    #[tokio::test]
+    async fn test_fluxo_completo_crm_ponta_a_ponta() {
+        use application::ports::{
+            CreateContractInput, CreateContractUseCase,
+            CreateLeadInput, CreateLeadUseCase,
+            CreateSaleAttemptInput, CreateSaleAttemptUseCase,
+            CreateWorkshopInput, CreateWorkshopUseCase,
+            GetLeadHistoryInput, GetLeadHistoryUseCase,
+            IssueBraceletInput, IssueBraceletUseCase,
+            RecordCheckInInput, RecordCheckInUseCase,
+            ScheduleAppointmentInput, ScheduleAppointmentUseCase,
+            UpdateLeadStatusInput, UpdateLeadStatusUseCase,
+        };
+        use application::services::{
+            BraceletService, ContractService, LeadService, SaleService, SchedulingService, WorkshopService,
+        };
+        use domain::entities::{LeadAuditEventType, LeadSource, LeadStatus, SchedulingType, WorkshopType};
+        use domain::ports::LeadRepository;
+        use infrastructure::persistence::{
+            InMemoryBraceletRepository, InMemoryCheckInRepository, InMemoryContractRepository,
+            InMemoryLeadAuditRepository, InMemoryLeadRepository,
+            InMemorySaleRepository, InMemorySchedulingRepository, InMemoryWorkshopRepository,
+        };
+
+        // Instanciar serviço de lead
+        let lead_service = LeadService::new(
+            InMemoryLeadRepository::default(),
+            InMemoryLeadAuditRepository::default(),
+        );
+
+        // 1. Criar lead
+        let lead_out = CreateLeadUseCase::execute(&lead_service, CreateLeadInput {
+            source: LeadSource::Website,
+            name: "Ana Luiza".to_string(),
+            cpf: Some("987.654.321-00".to_string()),
+            phone: Some("11977776666".to_string()),
+            email: Some("ana@example.com".to_string()),
+            observation: None,
+            assigned_to_id: Some(3),
+        }).await.unwrap();
+
+        assert_eq!(lead_out.lead.status, LeadStatus::New);
+        let lead_id = lead_out.lead.id;
+        let associate_id = uuid::Uuid::new_v4();
+
+        // 2. Agendar visita (pipeline: Contacted)
+        UpdateLeadStatusUseCase::execute(&lead_service, UpdateLeadStatusInput {
+            lead_id,
+            new_status: LeadStatus::Contacted,
+            performed_by_id: Some(3),
+        }).await.unwrap();
+
+        let scheduling_service = SchedulingService::new(
+            InMemorySchedulingRepository::default(),
+            InMemoryCheckInRepository::default(),
+        );
+        let sched_out = ScheduleAppointmentUseCase::execute(&scheduling_service, ScheduleAppointmentInput {
+            associate_id,
+            scheduled_date: chrono::Utc::now() + chrono::Duration::days(1),
+            scheduling_type: SchedulingType::Appointment,
+            notes: Some("Visita de apresentação".to_string()),
+        }).await.unwrap();
+
+        assert_eq!(sched_out.scheduling.associate_id, associate_id);
+
+        // 3. Check-in na visita
+        let ci_out = RecordCheckInUseCase::execute(&scheduling_service, RecordCheckInInput {
+            associate_id,
+            location: Some("Sede CNF".to_string()),
+        }).await.unwrap();
+
+        assert!(ci_out.check_in.check_out_time.is_none());
+
+        // 4. Agendar workshop (pipeline: Qualified)
+        UpdateLeadStatusUseCase::execute(&lead_service, UpdateLeadStatusInput {
+            lead_id,
+            new_status: LeadStatus::Qualified,
+            performed_by_id: Some(3),
+        }).await.unwrap();
+
+        let workshop_service = WorkshopService::new(
+            InMemoryWorkshopRepository::default(),
+            InMemoryLeadAuditRepository::default(),
+        );
+        let workshop_out = CreateWorkshopUseCase::execute(&workshop_service, CreateWorkshopInput {
+            associate_id,
+            scheduled_date: chrono::Utc::now() + chrono::Duration::days(7),
+            workshop_type: WorkshopType::TrialClass,
+            notes: Some("Aula experimental de natação".to_string()),
+        }).await.unwrap();
+
+        assert_eq!(workshop_out.workshop.associate_id, associate_id);
+
+        // 5. Tentativa de venda (pipeline: Proposal)
+        UpdateLeadStatusUseCase::execute(&lead_service, UpdateLeadStatusInput {
+            lead_id,
+            new_status: LeadStatus::Proposal,
+            performed_by_id: Some(3),
+        }).await.unwrap();
+
+        // Pre-populate lead_repo for SaleService (SaleService validates lead exists)
+        let sale_lead_repo = InMemoryLeadRepository::default();
+        LeadRepository::create(&sale_lead_repo, &lead_out.lead).await.unwrap();
+
+        let sale_service = SaleService::new(
+            InMemorySaleRepository::default(),
+            sale_lead_repo,
+            InMemoryLeadAuditRepository::default(),
+        );
+        let sale_out = CreateSaleAttemptUseCase::execute(&sale_service, CreateSaleAttemptInput {
+            lead_id,
+            stage_id: 4,
+            value: 2400.00,
+            description: Some("Plano anual premium".to_string()),
+            closed_by_id: 3,
+        }).await.unwrap();
+
+        assert_eq!(sale_out.sale.lead_id, lead_id);
+
+        // 6. Fechar venda (Won)
+        let won_out = UpdateLeadStatusUseCase::execute(&lead_service, UpdateLeadStatusInput {
+            lead_id,
+            new_status: LeadStatus::Won,
+            performed_by_id: Some(3),
+        }).await.unwrap();
+
+        assert_eq!(won_out.lead.status, LeadStatus::Won);
+        assert!(won_out.lead.converted_at.is_some());
+        assert_eq!(won_out.audit_event.event_type, LeadAuditEventType::Converted);
+
+        // 7. Criar contrato
+        let contract_service = ContractService::new(
+            InMemoryContractRepository::default(),
+            InMemoryLeadAuditRepository::default(),
+        );
+        let contract_out = CreateContractUseCase::execute(&contract_service, CreateContractInput {
+            associate_id,
+            contract_number: "CNT-2025-002".to_string(),
+            value: 2400.00,
+            start_date: chrono::Utc::now(),
+        }).await.unwrap();
+
+        assert_eq!(contract_out.contract.associate_id, associate_id);
+
+        // 8. Emitir pulseira
+        let bracelet_service = BraceletService::new(
+            InMemoryBraceletRepository::default(),
+            InMemoryLeadAuditRepository::default(),
+        );
+        let bracelet_out = IssueBraceletUseCase::execute(&bracelet_service, IssueBraceletInput {
+            associate_id,
+            bracelet_number: "PUL-2025-0042".to_string(),
+        }).await.unwrap();
+
+        assert_eq!(bracelet_out.bracelet.associate_id, associate_id);
+        assert_eq!(bracelet_out.bracelet.bracelet_number, "PUL-2025-0042");
+
+        // 9. Verificar histórico auditável ponta a ponta
+        // Lead passou por: Created → Contacted → Qualified → Proposal → Won
+        let history = GetLeadHistoryUseCase::execute(&lead_service, GetLeadHistoryInput { lead_id }).await.unwrap();
+        assert_eq!(history.events.len(), 5);
+        assert_eq!(history.events[0].event_type, LeadAuditEventType::Created);
+        assert_eq!(history.events[4].event_type, LeadAuditEventType::Converted);
+
+        // Garantir que todos os artefatos foram criados com sucesso
+        assert!(!workshop_out.workshop.id.is_nil());
+        assert!(!ci_out.check_in.id.is_nil());
+        assert!(!contract_out.contract.id.is_nil());
+        assert!(!bracelet_out.bracelet.id.is_nil());
     }
 }
